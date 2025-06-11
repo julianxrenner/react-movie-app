@@ -1,6 +1,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import Search from "./components/Search.jsx";
+import Spinner from "./components/Spinner.jsx";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
 
@@ -16,19 +17,37 @@ const API_OPTIONS = {
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
-
   const [errorMessage, setErrorMessage] = useState("");
+  const [movieList, setMovieList] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchMovies = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
     try {
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity_desc`
-      const response = await fetch()
+      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity_desc`;
+      const response = await fetch(endpoint, API_OPTIONS);
+      if (!response.ok) {
+        throw new Error("Failed to fetch movies 1");
+      }
+      const data = await response.json();
+      if (data.Response === false) {
+        setErrorMessage(data.error || "Failed to fetch movies 2");
+        setMovieList([]);
+        return;
+      }
+      setMovieList(data.results || []);
     } catch (error) {
       console.log(`There was a problem fetching movies ${error}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    fetchMovies();
+  }, []);
 
   return (
     <main>
@@ -44,8 +63,19 @@ const App = () => {
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </header>
         <section className="all-movies">
-          <h2>All Movies</h2>
-          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+          <h2 className="mt-[40px]">All Movies</h2>
+
+          {isLoading ? (
+            <Spinner/>
+          ) : errorMessage ? (
+            <p className="text-red-500">{errorMessage}</p>
+          ) : (
+            <ul>
+              {movieList.map((movie) => (
+                <p key={movie.id}className="text-white">{movie.title}</p>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </main>
